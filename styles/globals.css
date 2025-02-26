@@ -1,0 +1,32 @@
+body {
+  background-color: #14151A;  /* Dark background */
+  color: #fff;
+  margin: 0;
+  padding: 0;
+}
+
+.header {
+  text-align: center;
+  padding: 1rem;
+}
+
+.header h1 {
+  color: #7B6EF6;  /* Purple color matching the image */
+  margin: 0;
+  font-size: 2rem;
+}
+
+.container {
+  padding: 0 1rem;
+}
+
+.card {
+  background-color: #1E1F25;  /* Dark card background */
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  border: 1px solid #2A2B32;
+}
+
+/* Remove any existing hamburger menu styles */ 

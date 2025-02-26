@@ -2,19 +2,118 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --background: #0A0B0F;
+    --foreground: #E5E7EB; /* Light gray for text */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: #14151A;
+    --foreground: #E5E7EB;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html, body, #__next {
+    @apply bg-[#0A0B0F] min-h-screen;
+  }
+}
+
 @layer components {
+  .header {
+    @apply bg-dark text-center p-4 border-b border-border;
+  }
+
+  .header h1 {
+    @apply text-primary text-2xl m-0;
+  }
+
+  .container {
+    @apply m-0 p-0;
+  }
+
+  .upload-section {
+    @apply border-2 border-dashed border-border rounded-lg p-8 text-center my-4 bg-dark-card;
+  }
+
+  /* Fixed line - using direct color value instead of Tailwind class */
+  .upload-text {
+    color: #8E8EA0; /* Changed from @apply text-gray-400 */
+  }
+
+  .analyze-button {
+    @apply text-white font-semibold py-3 px-4 rounded-lg transition-colors;
+    background-color: #2563eb !important; /* Bright blue */
+  }
+
+  .analyze-button:hover {
+    background-color: #1d4ed8 !important; /* Slightly darker blue on hover */
+  }
+
+  .card {
+    @apply bg-dark-card border border-border rounded-lg p-4 mb-4 cursor-pointer;
+  }
+
+  .card h2 {
+    @apply m-0 text-white;
+  }
+
   .sidebar-container {
-    width: 400px;
-    border-right: 1px solid #1f2937;
-    padding: 1.5rem;
-    overflow-y: auto;
+    @apply w-[400px] border-r border-border p-6 overflow-y-auto shadow-lg;
     direction: rtl;
-    background-color: #111827; /* gray-900 */
-    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
+    background-color: #111827;
   }
 
   .sidebar-container > * {
     direction: ltr;
+  }
+
+  .main-container {
+    @apply bg-[#0A0B0F] min-h-screen flex flex-col;
+  }
+
+  .text-gray {
+    @apply text-gray-500;
+  }
+
+  .sidebar {
+    @apply bg-[#0A0B0F] h-full flex-1 flex flex-col;
+  }
+
+  .cards-container {
+    @apply flex-1 flex flex-col bg-[#0A0B0F] space-y-2;
+    min-height: 100%;
+  }
+
+  .collapsible-card {
+    @apply bg-[#1E1F25] rounded-lg p-4 w-full border border-[#2A2B32];
+  }
+
+  /* Force dark background for all elements */
+  *, *::before, *::after,
+  .final-section-wrapper {
+    @apply bg-[#0A0B0F] !important;
+  }
+
+  /* Specific fix for the final recommendation section */
+  .final-section {
+    @apply mb-0 flex-1;
+    min-height: fit-content;
+  }
+
+  /* Ensure the content below final recommendation maintains dark background */
+  .content-wrapper {
+    @apply flex flex-col flex-1 bg-[#0A0B0F];
+    min-height: calc(100vh - 4rem);
+  }
+
+  /* Style for upload area */
+  .upload-area {
+    @apply border-2 border-dashed border-gray-600 rounded-lg p-6 mb-4 text-center cursor-pointer hover:border-gray-500 transition-colors;
   }
 }
 
@@ -43,82 +142,13 @@
     scrollbar-width: thin;
     scrollbar-color: #4b5563 #1f2937;
   }
-}
-
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem
-  }
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%
+  
+  .scale-102 {
+    transform: scale(1.02);
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
-@keyframes grid-flow {
-  0% {
-    background-position: 0 0;
-  }
-  100% {
-    background-position: -50px -50px;
-  }
-}
-
+/* Background grid pattern */
 .bg-grid {
   background-image: linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
                     linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
@@ -129,32 +159,8 @@
   animation: grid-flow 20s linear infinite;
 }
 
-@keyframes glow {
-  0%, 100% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3),
-                0 0 40px rgba(147, 51, 234, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 40px rgba(59, 130, 246, 0.4),
-                0 0 60px rgba(147, 51, 234, 0.3);
-  }
-}
-
 .animate-glow {
   animation: glow 3s ease-in-out infinite;
-}
-
-.scale-102 {
-  transform: scale(1.02);
-}
-
-@keyframes gradient-x {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
 }
 
 .animate-gradient-x {
