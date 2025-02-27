@@ -14,52 +14,67 @@ export async function POST(req: Request) {
       );
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
-    // Construct chat context from analysis
+    // Simplified context that encourages conversational responses
     const context = `
-    Context about the stock:
-    - Current Price: ${analysis.currentPrice}
-    - 52-Week Range: ${analysis.weekRange}
-    - Volume: ${analysis.volume}
-    - P/E Ratio: ${analysis.peRatio}
-    - Support Level: ${analysis.support}
-    - Resistance Level: ${analysis.resistance}
-    - Current Trend: ${analysis.trend}
+    You are a helpful AI assistant analyzing a stock chart. Here's the analysis data:
+    
+    Stock Information:
+    ${JSON.stringify(analysis, null, 2)}
+
+    Please provide natural, conversational responses about this specific stock chart.
+    Focus on answering the user's question directly without using templates.
+    Use the analysis data to provide specific insights about this stock.
     `;
 
     // Construct chat history
-    const chatHistory = history.map((msg: any) => ({
-      role: msg.role,
-      parts: msg.content,
-    }));
+    const chatHistory = history?.map((msg: any) => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [msg.content],
+    })) || [];
 
-    // Start new chat
+    // Start chat
     const chat = model.startChat({
       history: chatHistory,
       generationConfig: {
-        maxOutputTokens: 1000,
+        maxOutputTokens: 2000,
+        temperature: 0.7, // Increased for more natural responses
+        topP: 0.8,
       },
     });
 
-    const prompt = `
-    ${context}
-    
-    User Question: ${message}
-    
-    Please provide a detailed and specific answer based on the stock analysis context provided above.
-    Focus on technical analysis and actionable insights.`;
-
-    const result = await chat.sendMessage(prompt);
-    const response = await result.response;
-    const text = response.text();
-
-    return NextResponse.json({ response: text });
+    try {
+      const response = await chat.sendMessage([context + "\n\nUser Question: " + message]);
+      const responseText = response.response.text();
+      
+      return new Response(responseText, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+        },
+      });
+    } catch (error) {
+      console.error('Chat error:', error);
+      return new Response(
+        "I apologize, but I'm having trouble analyzing the chart right now. Could you please try asking your question again?",
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+          },
+        }
+      );
+    }
   } catch (error) {
-    console.error('Error in chat:', error);
-    return NextResponse.json(
-      { error: "Failed to process chat message: " + (error as Error).message },
-      { status: 500 }
+    console.error('General error:', error);
+    return new Response(
+      "I'm sorry, but I encountered an error. Please try again.",
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+        },
+      }
     );
   }
-} 
+}
