@@ -10,9 +10,10 @@ interface Message {
 
 interface ChatProps {
   analysis: any;
+  isSidebarOpen: boolean;
 }
 
-export function Chat({ analysis }: ChatProps) {
+export function Chat({ analysis, isSidebarOpen }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -77,10 +78,12 @@ export function Chat({ analysis }: ChatProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#1A1B1E]">
+    <div className={`flex flex-col h-full bg-[#1A1B1E] transition-all duration-300 ${
+      isSidebarOpen ? 'ml-[400px]' : 'ml-0'
+    }`}>
       {/* Chat Header */}
-      <div className="border-b border-gray-800/60 py-3 px-4 flex items-center">
-        <Menu className="h-6 w-6 text-gray-400 mr-3" />
+      <div className="border-b border-gray-800/60 py-3 px-4 flex items-center justify-center">
+        <Menu className="h-6 w-6 text-gray-400 absolute left-4" />
         <h2 className="text-[15px] font-medium text-gray-200">Chat with Chart AI</h2>
       </div>
 

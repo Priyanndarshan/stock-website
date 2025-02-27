@@ -19,7 +19,7 @@ interface Analysis {
   peRatio: string;
   support: string;
   resistance: string;
-  trend: string;
+  trend: "Uptrend" | "Downtrend" | "Sideways";
   strategies: {
     shortTerm: string;
     mediumTerm: string;
@@ -132,7 +132,7 @@ export default function Home() {
             <Button 
               onClick={handleSubmit}
               disabled={loading || !selectedFile}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white transition-colors duration-200"
             >
               {loading ? (
                 <>
@@ -167,9 +167,14 @@ export default function Home() {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {analysis ? (
-          <Chat analysis={analysis} />
+          <Chat 
+            analysis={analysis} 
+            isSidebarOpen={isSidebarOpen}
+          />
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-400 pl-16">
+          <div className={`flex-1 flex items-center justify-center text-gray-400 transition-all duration-300 ${
+            isSidebarOpen ? 'pl-[400px]' : 'pl-0'
+          }`}>
             Upload a chart to start the analysis
           </div>
         )}

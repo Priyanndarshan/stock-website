@@ -117,3 +117,6 @@ export async function GET(request: Request) {
     // Return the prompt and image URL as a JSON response
     return NextResponse.json({ prompt, imageUrl });
 }
+
+// Handles image analysis using Gemini AI
+// Processes and structures the analysis results
