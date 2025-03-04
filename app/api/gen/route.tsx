@@ -10,9 +10,9 @@ export async function POST(req: Request) {
     const file: File | null = data.get('image') as unknown as File;
 
     if (!file) {
-      console.log('No file provided');
+      console.error('Error: No file provided in the request');
       return NextResponse.json(
-        { error: "No image file provided" },
+        { error: "No image file was provided. Please upload a valid image." },
         { status: 400 }
       );
     }
@@ -73,7 +73,16 @@ export async function POST(req: Request) {
       }
       
       const jsonText = jsonMatch[0].replace(/[\u201C\u201D]/g, '"'); // Replace smart quotes
-      const analysis = JSON.parse(jsonText);
+      let analysis;
+      try {
+        analysis = JSON.parse(jsonText);
+      } catch (error) {
+        console.error('Failed to parse JSON:', error);
+        return NextResponse.json(
+          { error: "Failed to parse analysis results." },
+          { status: 500 }
+        );
+      }
 
       // Validate required fields and their types
       const requiredFields = [

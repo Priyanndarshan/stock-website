@@ -4,14 +4,55 @@ import React, { useEffect, useState, useRef, memo } from 'react';
 declare global {
   interface Window {
     TradingView: any;
+    html2canvas: (element: HTMLElement, options?: any) => Promise<HTMLCanvasElement>;
   }
 }
+
+// Add custom CSS for theme colors
+const customStyles = `
+  :root:not(.theme-dark) {
+    --tv-color-platform-background: #f8fafc;
+    --tv-color-pane-background: #ffffff;
+    --tv-color-toolbar-button-background-hover: #e2e8f0;
+    --tv-color-toolbar-button-background-expanded: #e2e8f0;
+    --tv-color-toolbar-button-background-active: #dbeafe;
+    --tv-color-toolbar-button-background-active-hover: #bfdbfe;
+    --tv-color-toolbar-button-text: #1e40af;
+    --tv-color-toolbar-button-text-hover: #1e40af;
+    --tv-color-toolbar-button-text-active: #2563eb;
+    --tv-color-toolbar-button-text-active-hover: #3b82f6;
+    --tv-color-item-active-text: #2563eb;
+    --tv-color-toolbar-toggle-button-background-active: #2563eb;
+    --tv-color-toolbar-toggle-button-background-active-hover: #3b82f6;
+  }
+
+  .theme-dark:root {
+    --tv-color-platform-background: #0f172a;
+    --tv-color-pane-background: #1e293b;
+    --tv-color-toolbar-button-background-hover: #334155;
+    --tv-color-toolbar-button-background-expanded: #334155;
+    --tv-color-toolbar-button-background-active: #1e40af;
+    --tv-color-toolbar-button-background-active-hover: #2563eb;
+    --tv-color-toolbar-button-text: #e2e8f0;
+    --tv-color-toolbar-button-text-hover: #f8fafc;
+    --tv-color-toolbar-button-text-active: #bfdbfe;
+    --tv-color-toolbar-button-text-active-hover: #dbeafe;
+    --tv-color-item-active-text: #60a5fa;
+    --tv-color-toolbar-toggle-button-background-active: #2563eb;
+    --tv-color-toolbar-toggle-button-background-active-hover: #3b82f6;
+  }
+`;
 
 // TradingView Widget Component
 const TradingViewWidget = memo(({ isDarkMode }: { isDarkMode: boolean }) => {
   const container = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Add custom styles to document
+    const styleElement = document.createElement('style');
+    styleElement.textContent = customStyles;
+    document.head.appendChild(styleElement);
+
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.type = "text/javascript";
@@ -21,7 +62,7 @@ const TradingViewWidget = memo(({ isDarkMode }: { isDarkMode: boolean }) => {
       "symbol": "NASDAQ:AAPL",
       "interval": "D",
       "timezone": "Etc/UTC",
-      "theme": isDarkMode ? "dark" : "light",
+      "theme": "dark",
       "style": "1",
       "locale": "en",
       "enable_publishing": true,
@@ -46,8 +87,8 @@ const TradingViewWidget = memo(({ isDarkMode }: { isDarkMode: boolean }) => {
       "hide_top_toolbar": false,
       "hide_legend": false,
       "save_image": true,
-      "backgroundColor": isDarkMode ? "#1e293b" : "#ffffff",
-      "gridColor": isDarkMode ? "#334155" : "#f1f5f9",
+      "backgroundColor": "#1e293b",
+      "gridColor": "#334155",
       "widgetbar": {
         "details": true,
         "news": true,
@@ -66,13 +107,16 @@ const TradingViewWidget = memo(({ isDarkMode }: { isDarkMode: boolean }) => {
       if (container.current) {
         container.current.innerHTML = '';
       }
+      if (styleElement) {
+        document.head.removeChild(styleElement);
+      }
     };
   }, [isDarkMode]);
 
   return (
     <div className="tradingview-widget-container" ref={container} style={{ height: "100%", width: "100%" }}>
       <div className="tradingview-widget-container__widget" style={{ height: "calc(100% - 32px)", width: "100%" }}></div>
-      <div className={`tradingview-widget-copyright text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+      <div className="tradingview-widget-copyright text-xs text-gray-400">
         <a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">
           <span className="text-blue-500 hover:text-blue-600">Track all markets on TradingView</span>
         </a>
@@ -87,8 +131,10 @@ const ChartPage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const [chartHeight, setChartHeight] = useState('calc(90vh - 120px)');
+  const tradingViewWindowRef = useRef<Window | null>(null);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   // For the window opening functionality
   const updateHeight = () => {
@@ -100,8 +146,17 @@ const ChartPage = () => {
     updateHeight();
     window.addEventListener('resize', updateHeight);
 
+    // Add custom styles to document
+    const styleElement = document.createElement('style');
+    styleElement.textContent = customStyles;
+    document.head.appendChild(styleElement);
+    
+    // Set dark theme on mount
+    document.documentElement.classList.add('theme-dark');
+
     return () => {
       window.removeEventListener('resize', updateHeight);
+      document.head.removeChild(styleElement);
     };
   }, []);
 
@@ -110,73 +165,104 @@ const ChartPage = () => {
     setIsLoggedIn(true);
   };
 
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('theme-dark');
-  };
-
-  // Open TradingView in a new window
+  // Open TradingView in a proper popup window
   const openTradingViewWindow = () => {
-    const width = 1200;
-    const height = 800;
+    const width = Math.min(1200, window.screen.width * 0.9);
+    const height = Math.min(800, window.screen.height * 0.9);
     const left = (window.screen.width - width) / 2;
     const top = (window.screen.height - height) / 2;
     
-    window.open(
-      'https://www.tradingview.com/chart/?symbol=NASDAQ:AAPL',
-      'TradingView',
-      `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes`
+    // Open the actual TradingView website in a new window with dark theme
+    const tvWindow = window.open(
+      `https://www.tradingview.com/chart/?symbol=NASDAQ:AAPL&theme=dark`,
+      'TradingViewPopup',
+      `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes,status=yes,toolbar=yes,menubar=yes,location=yes`
     );
+    
+    if (tvWindow) {
+      tradingViewWindowRef.current = tvWindow;
+      setIsPopupOpen(true);
+      
+      // Focus the window
+      tvWindow.focus();
+      
+      // Set up a check to determine if popup was closed
+      const checkIfClosed = setInterval(() => {
+        if (tradingViewWindowRef.current && tradingViewWindowRef.current.closed) {
+          clearInterval(checkIfClosed);
+          setIsPopupOpen(false);
+        }
+      }, 1000);
+    } else {
+      alert("Your browser blocked the popup. Please allow popups for this site to use this feature.");
+    }
+  };
+  
+  // Bring focus to the TradingView window
+  const focusTradingViewWindow = () => {
+    if (tradingViewWindowRef.current && !tradingViewWindowRef.current.closed) {
+      tradingViewWindowRef.current.focus();
+    } else {
+      // If window is closed or not available, ask to open it
+      if (confirm('The TradingView window is not open. Would you like to open it now?')) {
+        openTradingViewWindow();
+      }
+    }
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-200 ${isDarkMode ? 'bg-gray-900' : 'bg-slate-50'}`}>
+    <div className="min-h-screen transition-colors duration-200 bg-gray-900">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <header className="mb-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className={`text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-800'} tracking-tight`}>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 text-white tracking-tight">
                 Advanced Trading Platform
               </h1>
-              <p className={`text-sm sm:text-base ${isDarkMode ? 'text-gray-300' : 'text-slate-600'}`}>
+              <p className="text-sm sm:text-base text-gray-300">
                 Access your TradingView account and analyze markets in real-time
               </p>
             </div>
             
             <div className="flex items-center gap-4">
-              <button 
-                onClick={toggleTheme}
-                className={`rounded-full p-2 ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'} transition-colors duration-200`}
-                aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-              >
-                {isDarkMode ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+              {!isPopupOpen ? (
+                <button 
+                  onClick={openTradingViewWindow}
+                  className="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
                   </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
-                  </svg>
-                )}
-              </button>
-              
-              <button 
-                onClick={openTradingViewWindow}
-                className="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
-                </svg>
-                Open in Window
-              </button>
+                  Open TradingView
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button 
+                    onClick={focusTradingViewWindow}
+                    className="inline-flex items-center px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.75-9l3-3 2.148 2.148A12.061 12.061 0 0116.5 7.605" />
+                    </svg>
+                    Focus TradingView
+                  </button>
+                  <button 
+                    onClick={openTradingViewWindow}
+                    className="inline-flex items-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 shadow-sm"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    New Window
+                  </button>
+                </div>
+              )}
 
               {!isLoggedIn && (
                 <button 
                   type="button"
                   onClick={() => document.getElementById('loginModal')?.classList.remove('hidden')}
-                  className={`ml-4 px-4 py-2 rounded-lg text-sm font-medium ${
-                    isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-blue-600 text-white hover:bg-blue-700'
-                  } transition-colors duration-200 shadow-sm`}
+                  className="ml-4 px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200 shadow-sm"
                 >
                   Log In
                 </button>
@@ -241,6 +327,12 @@ const ChartPage = () => {
                 </svg>
                 Save and manage your trading strategies
               </li>
+              <li className="flex items-center gap-2">
+                <svg className="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Seamlessly switch between chart view and full TradingView
+              </li>
             </ul>
           </div>
         </div>
@@ -300,6 +392,16 @@ const ChartPage = () => {
           </form>
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.3s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 };

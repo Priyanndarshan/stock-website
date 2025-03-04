@@ -7,6 +7,7 @@
     --background: #0A0B0F;
     --foreground: #E5E7EB; /* Light gray for text */
     --radius: 0.5rem;
+    --border-color: #2A2B32; /* Example of a reusable variable */
   }
 
   .dark {
@@ -166,4 +167,60 @@
 .animate-gradient-x {
   animation: gradient-x 15s ease infinite;
   background-size: 400% 400%;
+}
+
+/* Typing indicator animation */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+}
+
+.typing-indicator span {
+  height: 8px;
+  width: 8px;
+  margin: 0 2px;
+  background-color: #3b82f6;
+  border-radius: 50%;
+  display: inline-block;
+  opacity: 0.4;
+  animation: pulse 1s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+/* Add smooth scrolling for messages container */
+.messages-container {
+  scroll-behavior: smooth;
+}
+
+/* Style scrollbar */
+.messages-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
 }
