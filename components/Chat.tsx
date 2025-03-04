@@ -104,14 +104,13 @@ export function Chat({ analysis }: ChatProps) {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#1A1B1E]">
-      {/* Chat Header */}
-      <div className="border-b border-gray-800/60 py-3 px-4 flex items-center">
-        <Menu className="h-6 w-6 text-gray-400 mr-3" />
-        <h2 className="text-[15px] font-medium text-gray-200">Chat with Chart AI</h2>
+    <div className="flex flex-col h-full bg-[#1A1F35]">
+      {/* Chat Header - Updated styling */}
+      <div className="border-b border-[#2A3558] py-3 px-4 flex items-center justify-center">
+        <h2 className="text-[15px] font-medium text-gray-200">Chat with ROAR AI</h2>
       </div>
 
-      {/* Messages Area */}
+      {/* Messages Area - Updated colors */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-[48rem] mx-auto px-4 py-5 space-y-6">
           {/* Initial System Message */}
@@ -194,8 +193,8 @@ export function Chat({ analysis }: ChatProps) {
         </div>
       </div>
 
-      {/* Input Area */}
-      <div className="border-t border-gray-800/60 bg-[#1A1B1E]">
+      {/* Input Area - Updated styling */}
+      <div className="border-t border-[#2A3558] bg-[#1A1F35]">
         <div className="max-w-[48rem] mx-auto px-4 py-3">
           <form onSubmit={handleSubmit} className="relative">
             <textarea
@@ -205,22 +204,28 @@ export function Chat({ analysis }: ChatProps) {
               onKeyDown={handleKeyPress}
               placeholder="Ask about the stock analysis..."
               rows={1}
-              className="w-full bg-[#2A2B32] text-[#E3E3E3] rounded-2xl pl-4 pr-12 py-3 
-                resize-none focus:outline-none border border-gray-800/60
-                focus:border-gray-600 placeholder-gray-500 text-[15px]"
-              style={{ minHeight: '44px', maxHeight: '200px' }}
+              className="w-full bg-[#2A3558] text-gray-200 rounded-2xl pl-4 pr-12 py-3 
+                resize-none focus:outline-none border border-[#3B4875]
+                focus:border-[#FF6B6B] placeholder-gray-400 text-[15px]
+                scrollbar-hide"
+              style={{ 
+                minHeight: '44px', 
+                maxHeight: '200px',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none'
+              }}
             />
             <Button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="absolute right-2 bottom-[6px] p-1.5 hover:bg-gray-700/50 
-                text-gray-400 rounded-lg disabled:opacity-40"
+              className="absolute right-2 bottom-[6px] p-1.5 hover:bg-[#2A3558]/50 
+                text-[#FF6B6B] rounded-lg disabled:opacity-40"
             >
               <Send className="h-5 w-5" />
             </Button>
           </form>
-          <div className="text-[11px] text-gray-500 mt-2 text-center">
-            Chart AI can make mistakes, so double-check it
+          <div className="text-[11px] text-gray-400 mt-2 text-center">
+            ROAR AI can make mistakes, so double-check it
           </div>
         </div>
       </div>

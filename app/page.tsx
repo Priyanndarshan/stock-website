@@ -81,41 +81,46 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen bg-[#1E1E1E]">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-b from-[#1A1F35] to-[#0F1225]">
       {/* Hamburger Menu Button */}
       <HamburgerButton 
         onClick={() => setState(prev => ({ ...prev, isSidebarOpen: !prev.isSidebarOpen }))} 
         isOpen={state.isSidebarOpen}
+        className="fixed top-4 left-4 z-50"
       />
 
       {/* Left Sidebar - Analysis */}
       <div 
-        className={`sidebar-container fixed top-0 left-0 h-full z-40 transition-transform duration-300 ${
+        className={`sidebar-container transition-transform duration-300 ${
           state.isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="space-y-6 pt-16">
-          <h1 className={`${montserrat.className} text-4xl font-bold bg-gradient-to-r from-blue-500 to-pink-500 bg-clip-text text-transparent text-center mb-8`}>
-            Chart AI
-          </h1>
+          <div className="flex justify-center items-center mb-8">
+            <img 
+              src="images/roar-ai-logo.png.jpg" 
+              alt="ROAR AI" 
+              className="w-32 h-32 object-contain"
+            />
+          </div>
           
           {/* File Upload */}
           <div className="space-y-4">
             <label 
               htmlFor="chart-upload" 
               className={`
-                border-2 border-dashed border-gray-700 rounded-lg p-8
+                border-2 border-dashed border-[#2A3558] rounded-lg p-8
                 flex flex-col items-center justify-center gap-4 
-                cursor-pointer hover:border-gray-600 transition-colors
-                ${state.selectedFile ? 'bg-gray-800/50' : 'bg-gray-800/20'}
+                cursor-pointer hover:border-[#3B4875] transition-colors
+                ${state.selectedFile ? 'bg-[#2A3558]/30' : 'bg-[#2A3558]/10'}
               `}
             >
-              <Upload className="w-8 h-8 text-gray-400" />
+              <Upload className="w-8 h-8 text-[#FF6B6B]" />
               <div className="text-center">
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-gray-300">
                   {state.selectedFile ? state.selectedFile.name : 'Upload stock chart image'}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-400 mt-1">
                   Click or drag and drop
                 </p>
               </div>
@@ -131,7 +136,7 @@ export default function Home() {
             <Button 
               onClick={handleSubmit}
               disabled={state.loading || !state.selectedFile}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-gradient-to-r from-[#FF6B6B] to-[#FFB168] hover:opacity-90 text-white"
             >
               {state.loading ? (
                 <>
@@ -164,12 +169,22 @@ export default function Home() {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div 
+        className={`flex-1 transition-all duration-300 ${
+          state.isSidebarOpen ? 'ml-[400px]' : 'ml-0'
+        }`}
+      >
         {state.analysis ? (
-          <Chat analysis={state.analysis} />
+          <Chat 
+            analysis={state.analysis}
+          />
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-400 pl-16">
-            Upload a chart to start the analysis
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center space-y-4">
+              <div className="text-[#FF6B6B] text-6xl font-bold mb-4">🦁</div>
+              <p className="text-gray-300 text-lg">Upload a chart to start analysis</p>
+              <p className="text-gray-400 text-sm">Let ROAR AI analyze your stock charts</p>
+            </div>
           </div>
         )}
       </div>

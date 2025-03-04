@@ -4,14 +4,19 @@
 
 @layer base {
   :root {
-    --background: #0A0B0F;
-    --foreground: #E5E7EB; /* Light gray for text */
+    --background: #1A1F35;
+    --foreground: #E5E7EB;
+    --primary: #FF6B6B;
+    --primary-gradient: linear-gradient(to right, #FF6B6B, #FFB168);
+    --secondary: #2A3558;
+    --accent: #FFB168;
+    --border: #3B4875;
     --radius: 0.5rem;
     --border-color: #2A2B32; /* Example of a reusable variable */
   }
 
   .dark {
-    --background: #14151A;
+    --background: #1A1F35;
     --foreground: #E5E7EB;
   }
 
@@ -64,13 +69,30 @@
   }
 
   .sidebar-container {
-    @apply w-[400px] border-r border-border p-6 overflow-y-auto shadow-lg;
-    direction: rtl;
-    background-color: #111827;
+    @apply w-[400px] border-r border-[#2A3558] p-6 shadow-lg fixed top-0 left-0 h-full z-40;
+    background: linear-gradient(to bottom, #1A1F35, #0F1225);
   }
 
+  /* Sidebar scrolling container */
   .sidebar-container > * {
-    direction: ltr;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #4b5563 #1f2937;
+  }
+
+  /* Sidebar scrollbar styles */
+  .sidebar-container > *::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .sidebar-container > *::-webkit-scrollbar-track {
+    background: #1f2937;
+  }
+
+  .sidebar-container > *::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 3px;
   }
 
   .main-container {
@@ -115,6 +137,23 @@
   /* Style for upload area */
   .upload-area {
     @apply border-2 border-dashed border-gray-600 rounded-lg p-6 mb-4 text-center cursor-pointer hover:border-gray-500 transition-colors;
+  }
+
+  /* Main content transition */
+  .main-content {
+    @apply transition-all duration-300 overflow-x-hidden;
+  }
+
+  /* Smooth transitions */
+  .transition-transform {
+    transition-property: transform, margin;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+  }
+
+  /* Ensure content doesn't shift abruptly */
+  .overflow-hidden {
+    overflow: hidden;
   }
 }
 
@@ -223,4 +262,41 @@
 .messages-container::-webkit-scrollbar-thumb {
   background-color: rgba(156, 163, 175, 0.5);
   border-radius: 3px;
+}
+
+/* Add gradient animation */
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 15s ease infinite;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Add these styles to hide scrollbar */
+.scrollbar-hide {
+  /* For Chrome, Safari, and Opera */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* For IE, Edge, and Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Optional: Add this if you want to show scrollbar on hover */
+.scrollbar-hide:hover {
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
