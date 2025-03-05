@@ -34,7 +34,8 @@ export async function POST(req: Request) {
     console.log('Calling Gemini API...');
     const prompt = `Analyze this stock chart image in detail and provide a structured analysis. Return ONLY a valid JSON object with the following structure:
     {
-      "stockName": "extract the exact stock name/symbol from the chart",
+      "stockName": "full company name (e.g., 'Apple Inc.')",
+      "stockSymbol": "exact stock symbol as used on TradingView (e.g., 'AAPL' for Apple). Do not include exchange prefixes like 'NASDAQ:'. Only provide the symbol itself.",
       "currentPrice": "exact current price",
       "weekRange": "52-week price range",
       "volume": "current trading volume",
@@ -48,7 +49,9 @@ export async function POST(req: Request) {
         "longTerm": "detailed 6+ month strategy"
       },
       "recommendation": "final investment recommendation"
-    }`;
+    }
+    
+    It is VERY IMPORTANT that you provide the correct TradingView stock symbol (e.g., 'AAPL', 'MSFT', 'GOOGL', etc.) in the stockSymbol field, as this will be used directly to load the chart. The symbol must be accurate and in the correct format without any exchange prefixes.`;
 
     const result = await model.generateContent([
       prompt,

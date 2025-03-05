@@ -1,12 +1,15 @@
-import { useState, useRef, useEffect, KeyboardEvent } from 'react';
+import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { Button } from './ui/button';
-import { Menu, Send } from 'lucide-react';
+import { Send, User, Bot, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useChatContext } from './ChatContext';
+import { useLiveChartData } from '@/app/Chart/page';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  timestamp?: Date;
 }
 
 interface ChatProps {
@@ -20,70 +23,142 @@ interface MarkdownComponentProps {
 }
 
 export function Chat({ analysis }: ChatProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, setMessages, addMessage } = useChatContext();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { liveData } = useLiveChartData();
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   };
+
+  useEffect(() => {
+    if (!analysis) return;
+    
+    const trend = analysis.trend || 'sideways pattern';
+    const currentPrice = analysis.currentPrice || 'N/A';
+    const support = analysis.support || 'N/A';
+    const resistance = analysis.resistance || 'N/A';
+    const recommendation = analysis.recommendation || 'View the live chart for the most current information';
+    
+    const welcomeMessage = {
+      role: 'assistant' as const,
+      content: `I've analyzed the ${analysis.name || 'stock'} chart for you. Here's what I found:\n\nKey Insights:\n• 📊 Trend: The stock is showing a ${trend}\n• 💰 Current Price: ${currentPrice}\n• 🔍 Key Levels: Support at ${support}, resistance at ${resistance}\n• 🎯 Recommendation: ${recommendation}\n\nHow can I help you understand this analysis further?`,
+      timestamp: new Date()
+    };
+    
+    const hasWelcomeMessage = messages.some(
+      msg => msg.role === 'assistant' && msg.content.includes("I've analyzed")
+    );
+    
+    if (!hasWelcomeMessage) {
+      addMessage(welcomeMessage);
+    } else {
+      const hasNAValues = messages.some(
+        msg => msg.role === 'assistant' && 
+               msg.content.includes("I've analyzed") && 
+               (msg.content.includes("Support at N/A") || 
+                msg.content.includes("Current Price: N/A"))
+      );
+      
+      if (hasNAValues && (currentPrice !== 'N/A' || support !== 'N/A')) {
+        const welcomeMessages = messages.filter(
+          msg => msg.role === 'assistant' && msg.content.includes("I've analyzed")
+        );
+        
+        if (welcomeMessages.length > 0) {
+          const updatedMessages = messages.map(msg => 
+            msg.role === 'assistant' && msg.content.includes("I've analyzed")
+              ? { ...welcomeMessage, timestamp: msg.timestamp }
+              : msg
+          );
+          
+          setMessages(updatedMessages);
+        }
+      }
+    }
+    
+    scrollToBottom();
+  }, [analysis, messages, addMessage, setMessages]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   useEffect(() => {
-    if (analysis?.stockName) {
-      setMessages([{
-        role: 'assistant',
-        content: `I've analyzed the chart for ${analysis.stockName}. I can see the price movements, trends, and technical indicators. What would you like to know about this stock?`
-      }]);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
     }
-  }, [analysis]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    const userMessage = input.trim();
+    const userMessage = {
+      role: 'user' as const,
+      content: input.trim(),
+      timestamp: new Date()
+    };
+    addMessage(userMessage);
     setInput('');
-    setIsLoading(true);
     
-    // Add user message to chat
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+
+    setIsLoading(true);
 
     try {
+      const enhancedAnalysis = {
+        ...analysis,
+        liveData: {
+          ...liveData,
+          timestamp: new Date().toISOString()
+        },
+        isLiveData: true
+      };
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: userMessage,
-          analysis,
-          history: messages,
+          message: input.trim(),
+          analysis: enhancedAnalysis
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get response');
-      }
-
-      const data = await response.text();
-      setMessages(prev => [...prev, { role: 'assistant', content: data }]);
+      const data = await response.json();
       
+      if (data.message) {
+        addMessage({
+          role: 'assistant',
+          content: data.message,
+          timestamp: new Date()
+        });
+      } else if (data.error) {
+        addMessage({
+          role: 'assistant',
+          content: `Sorry, there was an error: ${data.error}. Please try asking in a different way.`,
+          timestamp: new Date()
+        });
+      } else {
+        throw new Error('Unexpected API response format');
+      }
     } catch (error) {
-      console.error('Error in chat:', error);
-      setMessages(prev => [
-        ...prev,
-        { 
-          role: 'assistant', 
-          content: 'Sorry, I encountered an error processing your request. Please try again.' 
-        }
-      ]);
+      console.error('Error sending message:', error);
+      
+      addMessage({
+        role: 'assistant',
+        content: 'I apologize, but I\'m having trouble analyzing this data right now. Please try asking a simpler question or check the live chart for the most accurate information.',
+        timestamp: new Date()
+      });
     } finally {
       setIsLoading(false);
     }
@@ -91,144 +166,166 @@ export function Chat({ analysis }: ChatProps) {
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
-    // Auto-resize textarea
-    e.target.style.height = 'auto';
-    e.target.style.height = `${e.target.scrollHeight}px`;
+    
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
   };
 
   const handleKeyPress = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      handleSubmit(e as unknown as React.FormEvent);
     }
   };
 
+  const formatTime = (date?: Date) => {
+    if (!date) return '';
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    });
+  };
+
   return (
-    <div className="flex flex-col h-full bg-[#1A1F35]">
-      {/* Chat Header - Updated styling */}
-      <div className="border-b border-[#2A3558] py-3 px-4 flex items-center justify-center">
-        <h2 className="text-[15px] font-medium text-gray-200">Chat with ROAR AI</h2>
+    <div className="flex flex-col h-full bg-gray-900 rounded-lg overflow-hidden">
+      <div className="p-4 bg-gray-800 border-b border-gray-700">
+        <h3 className="text-lg font-medium text-white flex items-center">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 mr-2">
+            <Bot size={14} className="text-white" />
+          </span>
+          Chat with ROAR AI
+        </h3>
       </div>
-
-      {/* Messages Area - Updated colors */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[48rem] mx-auto px-4 py-5 space-y-6">
-          {/* Initial System Message */}
-          {messages.length === 0 && (
-            <div className="flex gap-4 items-start">
-              <div className="w-6 h-6 rounded-full bg-[#2563EB] flex-shrink-0 flex items-center justify-center mt-1">
-                <span className="text-white text-xs">AI</span>
+      
+      <div 
+        ref={chatContainerRef} 
+        className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar"
+      >
+        {messages.map((message, index) => (
+          <div
+            key={index}
+            className={`flex items-start gap-3 ${
+              message.role === 'user' ? 'justify-end' : 'justify-start'
+            } animate-fadeIn`}
+          >
+            {message.role === 'assistant' && (
+              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                <Bot size={18} className="text-white" />
               </div>
-              <div className="flex-1 text-[#E3E3E3] text-[15px] leading-normal min-w-0">
-                Loading chart analysis...
-              </div>
-            </div>
-          )}
-
-          {/* Chat Messages */}
-          {messages.map((message, index) => (
-            <div key={index} 
-              className={`flex gap-4 items-start ${
-                message.role === 'user' ? 'flex-row-reverse' : ''
+            )}
+            
+            <div
+              className={`rounded-lg px-4 py-2 max-w-[85%] ${
+                message.role === 'user'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-800 text-gray-100'
               }`}
             >
-              <div className={`w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center mt-1 ${
-                message.role === 'user' ? 'bg-[#3F3F46]' : 'bg-[#2563EB]'
-              }`}>
-                <span className="text-white text-xs">
-                  {message.role === 'user' ? 'U' : 'AI'}
-                </span>
-              </div>
-              <div className={`flex-1 min-w-0 text-[15px] leading-normal ${
-                message.role === 'user' ? 'text-right' : ''
-              } text-[#E3E3E3]`}>
-                {message.role === 'user' ? (
-                  <div className="whitespace-pre-wrap">{message.content}</div>
-                ) : (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      h1: ({children, ...props}: MarkdownComponentProps) => 
-                        <h1 className="text-2xl font-bold my-4 text-gray-100" {...props}>{children}</h1>,
-                      h2: ({children, ...props}: MarkdownComponentProps) => 
-                        <h2 className="text-xl font-bold my-3 text-gray-200" {...props}>{children}</h2>,
-                      h3: ({children, ...props}: MarkdownComponentProps) => 
-                        <h3 className="text-lg font-bold my-2 text-gray-300" {...props}>{children}</h3>,
-                      ul: ({children, ...props}: MarkdownComponentProps) => 
-                        <ul className="list-disc ml-6 my-2 space-y-1" {...props}>{children}</ul>,
-                      li: ({children, ...props}: MarkdownComponentProps) => 
-                        <li className="text-gray-300" {...props}>{children}</li>,
-                      p: ({children, ...props}: MarkdownComponentProps) => 
-                        <p className="my-2 text-gray-300" {...props}>{children}</p>,
-                      strong: ({children, ...props}: MarkdownComponentProps) =>
-                        <strong className="font-bold text-blue-400" {...props}>{children}</strong>,
-                      code: ({children, ...props}: MarkdownComponentProps) =>
-                        <code className="bg-gray-700 rounded px-1" {...props}>{children}</code>
-                    }}
-                  >
-                    {message.content}
-                  </ReactMarkdown>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {/* Loading Indicator */}
-          {isLoading && (
-            <div className="flex gap-4 items-start">
-              <div className="w-6 h-6 rounded-full bg-[#2563EB] flex-shrink-0 flex items-center justify-center mt-1">
-                <span className="text-white text-xs">AI</span>
-              </div>
-              <div className="flex-1 text-[#E3E3E3] text-[15px] leading-normal min-w-0">
-                <div className="typing-indicator">
-                  <span></span>
-                  <span></span>
-                  <span></span>
+              <ReactMarkdown
+                components={{
+                  p: ({ node, ...props }: MarkdownComponentProps) => (
+                    <p className="mb-2 last:mb-0" {...props} />
+                  ),
+                  ul: ({ node, ...props }: MarkdownComponentProps) => (
+                    <ul className="list-disc pl-5 mb-2" {...props} />
+                  ),
+                  ol: ({ node, ...props }: MarkdownComponentProps) => (
+                    <ol className="list-decimal pl-5 mb-2" {...props} />
+                  ),
+                  li: ({ node, ...props }: MarkdownComponentProps) => (
+                    <li className="mb-1" {...props} />
+                  ),
+                  code: ({ node, ...props }: MarkdownComponentProps) => (
+                    <code className="bg-gray-700 px-1 py-0.5 rounded text-sm" {...props} />
+                  ),
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+              {message.timestamp && (
+                <div className="text-xs opacity-70 mt-1 text-right">
+                  {formatTime(message.timestamp)}
                 </div>
-              </div>
+              )}
             </div>
-          )}
-          
-          <div ref={messagesEndRef} />
-        </div>
+            
+            {message.role === 'user' && (
+              <div className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+                <User size={18} className="text-gray-300" />
+              </div>
+            )}
+          </div>
+        ))}
+        
+        {isLoading && (
+          <div className="flex items-center justify-start gap-3 animate-fadeIn">
+            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center">
+              <Bot size={18} className="text-white" />
+            </div>
+            <div className="bg-gray-800 rounded-lg px-4 py-3 text-gray-300 flex items-center">
+              <Loader2 size={18} className="animate-spin mr-2" />
+              <span>Thinking...</span>
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Input Area - Updated styling */}
-      <div className="border-t border-[#2A3558] bg-[#1A1F35]">
-        <div className="max-w-[48rem] mx-auto px-4 py-3">
-          <form onSubmit={handleSubmit} className="relative">
+      
+      <div className="p-4 bg-gray-800 border-t border-gray-700">
+        <form 
+          onSubmit={handleSubmit}
+          className="border-t border-gray-800 p-3 bg-gray-850"
+        >
+          <div className="flex items-end gap-2 bg-gray-800 rounded-lg p-2">
             <textarea
               ref={textareaRef}
               value={input}
               onChange={handleTextareaChange}
               onKeyDown={handleKeyPress}
               placeholder="Ask about the stock analysis..."
-              rows={1}
-              className="w-full bg-[#2A3558] text-gray-200 rounded-2xl pl-4 pr-12 py-3 
-                resize-none focus:outline-none border border-[#3B4875]
-                focus:border-[#FF6B6B] placeholder-gray-400 text-[15px]
-                scrollbar-hide"
-              style={{ 
-                minHeight: '44px', 
-                maxHeight: '200px',
-                scrollbarWidth: 'none',
-                msOverflowStyle: 'none'
-              }}
+              className="flex-1 bg-transparent border-0 focus:ring-0 resize-none max-h-32 overflow-y-auto text-gray-100 placeholder-gray-400 py-1 px-2"
+              style={{ height: 'auto', minHeight: '40px' }}
             />
-            <Button
+            <button
               type="submit"
-              disabled={isLoading || !input.trim()}
-              className="absolute right-2 bottom-[6px] p-1.5 hover:bg-[#2A3558]/50 
-                text-[#FF6B6B] rounded-lg disabled:opacity-40"
+              disabled={!input.trim() || isLoading}
+              className={`px-3 py-2 rounded-lg flex-shrink-0 transition-all ${
+                !input.trim() || isLoading
+                  ? 'bg-gray-700 text-gray-500'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
             >
-              <Send className="h-5 w-5" />
-            </Button>
-          </form>
-          <div className="text-[11px] text-gray-400 mt-2 text-center">
-            ROAR AI can make mistakes, so double-check it
+              <Send size={18} />
+            </button>
           </div>
-        </div>
+          <div className="text-xs text-gray-500 mt-2 text-center">
+            Press Ctrl+Enter to send
+          </div>
+        </form>
+        <p className="text-xs text-gray-500 mt-2 text-center">
+          ROAR AI can make mistakes, so double-check it
+        </p>
       </div>
+      
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out forwards;
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background-color: rgba(156, 163, 175, 0.5);
+          border-radius: 3px;
+        }
+      `}</style>
     </div>
   );
 } 

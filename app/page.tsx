@@ -4,22 +4,24 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { StockAnalysisCard } from "@/components/StockAnalysisCard";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, LineChart } from "lucide-react";
 import { Chat } from "@/components/Chat";
 import { Montserrat } from 'next/font/google';
 import { CollapsiblePanel } from "@/components/CollapsiblePanel";
 import { ImagePreview } from "@/components/ImagePreview";
 import { HamburgerButton } from "@/components/HamburgerButton";
+import { useRouter } from "next/navigation";
 
 interface Analysis {
   stockName: string;
+  stockSymbol?: string;
   currentPrice: string;
   weekRange: string;
   volume: string;
   peRatio: string;
   support: string;
   resistance: string;
-  trend: string;
+  trend: "Uptrend" | "Downtrend" | "Sideways";
   strategies: {
     shortTerm: string;
     mediumTerm: string;
@@ -31,6 +33,8 @@ interface Analysis {
 const montserrat = Montserrat({ subsets: ['latin'] });
 
 export default function Home() {
+  const router = useRouter();
+
   const [state, setState] = useState({
     loading: false,
     analysis: null as Analysis | null,
@@ -40,8 +44,9 @@ export default function Home() {
   });
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setState(prev => ({ ...prev, selectedFile: e.target.files[0] }));
+    const files = e.target.files;
+    if (files && files[0]) {
+      setState(prev => ({ ...prev, selectedFile: files[0] }));
     }
   };
 
@@ -77,6 +82,17 @@ export default function Home() {
       alert('Failed to analyze image: ' + (error as Error).message);
     } finally {
       setState(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const goToLiveChart = () => {
+    if (state.analysis) {
+      // Use the stockSymbol field if available, otherwise extract from stockName
+      const symbolToUse = state.analysis.stockSymbol || state.analysis.stockName.split(' ')[0];
+      
+      router.push(`/Chart?symbol=${encodeURIComponent(symbolToUse)}&name=${encodeURIComponent(state.analysis.stockName)}`);
+    } else {
+      alert("No stock analysis available. Please analyze an image first.");
     }
   };
 
@@ -162,7 +178,16 @@ export default function Home() {
                   </div>
                 )}
               </CollapsiblePanel>
-              <StockAnalysisCard analysis={state.analysis} />
+              <div className="flex flex-col gap-4">
+                <StockAnalysisCard analysis={state.analysis} />
+                <Button 
+                  onClick={goToLiveChart}
+                  className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  <LineChart className="w-5 h-5" />
+                  Live Chart
+                </Button>
+              </div>
             </div>
           )}
         </div>
